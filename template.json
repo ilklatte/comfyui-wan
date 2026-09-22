@@ -1,0 +1,23 @@
+{
+  "template_repo": "https://github.com/ilklatte/comfyui-wan.git",
+  "branch": "main",
+  "provisioning_mode": "walk",
+  "flags": {
+    "download_wan22_t2v": {
+      "folders": ["Wan 2.2/T2V"],
+      "extra_models": []
+    },
+    "download_wan22_i2v": {
+      "folders": ["Wan 2.2/I2V"],
+      "extra_models": []
+    }
+  },
+  "auto_download": [],
+  "models_symlink": false,
+  "custom_nodes": {
+    "target": "image",
+    "repos": []
+  },
+  "sage": true,
+  "jupyter": true
+}

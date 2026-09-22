@@ -1,0 +1,87 @@
+name: Verify and publish Docker image
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Validate template files
+        run: |
+          bash -n src/start_script.sh
+          python3 -m py_compile tools/*.py
+          find . -path ./.git -prune -o -name '*.json' -print0 | xargs -0 -r -n1 python3 -m json.tool >/dev/null
+          python3 tools/validate_models.py --offline
+      - name: Validate inherited base-image contract
+        run: |
+          grep -Eq '^ARG BASE_IMAGE=.*comfyui-base:cuda[0-9.]+-torch[0-9.]+-comfyui[0-9.]+-python[0-9.]+-v[0-9]+' Dockerfile
+          ! grep -q 'hearmeman/comfyui-base' Dockerfile
+          ! grep -q 'apt-get install.*tmux' Dockerfile
+          ! grep -q '/ComfyUI/custom_nodes/' Dockerfile
+
+  publish:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Validate release configuration
+        id: release
+        env:
+          DOCKER_IMAGE: ${{ vars.DOCKER_IMAGE }}
+          TEMPLATE_REPOSITORY_URL: ${{ vars.TEMPLATE_REPOSITORY_URL }}
+          RUNPOD_TEMPLATE_IDS: ${{ vars.RUNPOD_TEMPLATE_IDS }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+          RUNPOD_API_KEY: ${{ secrets.RUNPOD_API_KEY }}
+        run: |
+          [[ "$GITHUB_REF_NAME" =~ ^v[0-9]+(\.[0-9]+)*$ ]] || { echo 'Release tag must be vN, vN.N, or vN.N.N'; exit 2; }
+          for name in DOCKER_IMAGE TEMPLATE_REPOSITORY_URL RUNPOD_TEMPLATE_IDS DOCKERHUB_USERNAME DOCKERHUB_TOKEN RUNPOD_API_KEY; do
+            test -n "${!name}" || { echo "$name is required"; exit 2; }
+          done
+          base_image=$(python3 -c "import json; print(json.load(open('pins.json'))['base_image'])")
+          test -n "$base_image" || { echo 'pins.json base_image is required'; exit 2; }
+          [[ "$base_image" != replace-with-* ]] || { echo 'Replace the Wan base_image with your published, version-qualified comfyui-base image'; exit 2; }
+          [[ "$base_image" =~ /comfyui-base:cuda[0-9.]+-torch[0-9.]+-comfyui[0-9.]+-python[0-9.]+-v[0-9]+(\.[0-9]+)*$ ]] || { echo 'Wan base_image must use the immutable version-qualified comfyui-base tag'; exit 2; }
+          echo "base_image=$base_image" >> "$GITHUB_OUTPUT"
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
+      - name: Log in to Docker Hub
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build and push immutable image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ vars.DOCKER_IMAGE }}:${{ github.ref_name }}
+            ${{ vars.DOCKER_IMAGE }}:latest
+          build-args: |
+            BASE_IMAGE=${{ steps.release.outputs.base_image }}
+            TEMPLATE_REPOSITORY_URL=${{ vars.TEMPLATE_REPOSITORY_URL }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Promote image to RunPod templates
+        env:
+          RUNPOD_API_KEY: ${{ secrets.RUNPOD_API_KEY }}
+          RUNPOD_TEMPLATE_IDS: ${{ vars.RUNPOD_TEMPLATE_IDS }}
+          DOCKER_IMAGE: ${{ vars.DOCKER_IMAGE }}
+        run: |
+          python3 tools/update_runpod_template.py \
+            --image "$DOCKER_IMAGE:$GITHUB_REF_NAME" \
+            --expected-repository "$DOCKER_IMAGE" \
+            --template-ids "$RUNPOD_TEMPLATE_IDS"
