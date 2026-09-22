@@ -1,4 +1,4 @@
 {
   "runtime_ref": "stable",
-  "base_image": "coohh88/comfyui-base:cuda12.8.1-torch2.11.0-comfyui0.36.0-python3.12-r1"
+  "base_image": "coohh88/comfyui-base:cuda12.8.1-torch2.11.0-comfyui0.36.0-python3.12-r2"
 }
