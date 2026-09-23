@@ -3,9 +3,19 @@ name: Verify and publish Docker image
 on:
   push:
     branches: [main]
-    tags: ['v*']
   pull_request:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing vN tag to build and publish
+        required: true
+        type: string
+      promote_runpod:
+        description: Update configured RunPod templates after publishing
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -16,6 +26,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ inputs.release_tag || github.ref }}
       - name: Validate template files
         run: |
           bash -n src/start_script.sh
@@ -33,23 +45,26 @@ jobs:
           ! grep -q 'Hearmeman24/comfyui-runtime.git' src/start_script.sh
 
   publish:
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name == 'workflow_dispatch'
     needs: verify
     runs-on: ubuntu-latest
     env:
       DOCKER_IMAGE: ${{ vars.DOCKER_IMAGE || 'coohh88/comfyui-wan' }}
       TEMPLATE_REPOSITORY_URL: ${{ vars.TEMPLATE_REPOSITORY_URL || 'https://github.com/ilklatte/comfyui-wan.git' }}
+      RELEASE_TAG: ${{ inputs.release_tag }}
     steps:
       - name: Check out repository
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ inputs.release_tag }}
       - name: Validate release configuration
         id: release
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
-          [[ "$GITHUB_REF_NAME" =~ ^v[1-9][0-9]*$ ]] || { echo 'Release tag must be vN, for example v1'; exit 2; }
-          for name in DOCKER_IMAGE TEMPLATE_REPOSITORY_URL DOCKERHUB_USERNAME DOCKERHUB_TOKEN; do
+          [[ "$RELEASE_TAG" =~ ^v[1-9][0-9]*$ ]] || { echo 'Release tag must be vN, for example v1'; exit 2; }
+          for name in DOCKER_IMAGE TEMPLATE_REPOSITORY_URL RELEASE_TAG DOCKERHUB_USERNAME DOCKERHUB_TOKEN; do
             test -n "${!name}" || { echo "$name is required"; exit 2; }
           done
           base_image=$(python3 -c "import json; print(json.load(open('pins.json'))['base_image'])")
@@ -57,17 +72,14 @@ jobs:
           [[ "$base_image" != replace-with-* ]] || { echo 'Replace the Wan base_image with your published, version-qualified comfyui-base image'; exit 2; }
           [[ "$base_image" =~ /comfyui-base:cuda[0-9.]+-torch[0-9.]+-comfyui[0-9.]+-python[0-9.]+-r[1-9][0-9]*$ ]] || { echo 'Wan base_image must use an immutable rN comfyui-base tag'; exit 2; }
           echo "base_image=$base_image" >> "$GITHUB_OUTPUT"
-          echo "image_tag=$GITHUB_REF_NAME" >> "$GITHUB_OUTPUT"
+          echo "image_tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
       - name: Log in to Docker Hub
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
-        with:
-          driver: cloud
-          endpoint: ${{ vars.DOCKER_BUILD_CLOUD_ENDPOINT || 'coohh88/comfyui-image-builder' }}
       - name: Build and push immutable image
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
@@ -80,8 +92,10 @@ jobs:
           build-args: |
             BASE_IMAGE=${{ steps.release.outputs.base_image }}
             TEMPLATE_REPOSITORY_URL=${{ env.TEMPLATE_REPOSITORY_URL }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
       - name: Promote image to RunPod templates
-        if: vars.RUNPOD_TEMPLATE_IDS != ''
+        if: ${{ inputs.promote_runpod && vars.RUNPOD_TEMPLATE_IDS != '' }}
         env:
           RUNPOD_API_KEY: ${{ secrets.RUNPOD_API_KEY }}
           RUNPOD_TEMPLATE_IDS: ${{ vars.RUNPOD_TEMPLATE_IDS }}
