@@ -23,7 +23,7 @@ built and the pod can boot, but this version **cannot generate Wan video**.
 2. Add GitHub repository variable `TEMPLATE_REPOSITORY_URL` with the same URL.
 3. Add repository variables `DOCKER_IMAGE` and `RUNPOD_TEMPLATE_IDS` for this template only.
 4. Add Actions secrets `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`, and `RUNPOD_API_KEY`.
-5. Confirm `coohh88/comfyui-base:cuda12.8.1-torch2.11.0-comfyui0.36.0-python3.12-r3`
+5. Confirm `coohh88/comfyui-base:cuda12.8.1-torch2.11.0-comfyui0.36.0-python3.12-r5`
    exists before publishing the Wan image.
 6. Add real workflows, then derive the exact model registry and Wan-specific node packs
    from those workflows before calling the template generation-ready.
