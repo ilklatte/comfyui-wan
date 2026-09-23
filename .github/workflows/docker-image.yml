@@ -21,7 +21,7 @@ jobs:
           bash -n src/start_script.sh
           python3 -m py_compile tools/*.py
           find . -path ./.git -prune -o -name '*.json' -print0 | xargs -0 -r -n1 python3 -m json.tool >/dev/null
-          python3 tools/validate_models.py --offline
+          python3 tools/validate_models.py --registry src/models_registry.json --workflows workflows --template template.json --offline
           PYTHONPATH=tools python3 -m unittest tools/test_update_runpod_template.py
       - name: Validate inherited base-image contract
         run: |
@@ -29,6 +29,8 @@ jobs:
           ! grep -q 'hearmeman/comfyui-base' Dockerfile
           ! grep -q 'apt-get install.*tmux' Dockerfile
           ! grep -q '/ComfyUI/custom_nodes/' Dockerfile
+          grep -q '^RUNTIME_DIR=/opt/comfyui-runtime$' src/start_script.sh
+          ! grep -q 'Hearmeman24/comfyui-runtime.git' src/start_script.sh
 
   publish:
     if: startsWith(github.ref, 'refs/tags/v')

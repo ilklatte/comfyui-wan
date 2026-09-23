@@ -5,6 +5,9 @@ immutable, version-qualified `comfyui-base` image published by the sibling base
 repository.
 It inherits CUDA 12.8, PyTorch cu128, ComfyUI, Manager, JupyterLab, tmux, TPM,
 SageAttention, and the base template's 13 common custom-node packs.
+The inherited Base image also owns the complete pod runtime. Wan startup syncs
+only this template repository and executes `/opt/comfyui-runtime/src/start.sh`;
+it no longer downloads or executes `Hearmeman24/comfyui-runtime`.
 
 ## Current limitation
 
@@ -23,7 +26,7 @@ built and the pod can boot, but this version **cannot generate Wan video**.
 2. Add GitHub repository variable `TEMPLATE_REPOSITORY_URL` with the same URL.
 3. Add repository variables `DOCKER_IMAGE` and `RUNPOD_TEMPLATE_IDS` for this template only.
 4. Add Actions secrets `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`, and `RUNPOD_API_KEY`.
-5. Confirm `coohh88/comfyui-base:cuda12.8.1-torch2.11.0-comfyui0.36.0-python3.12-r5`
+5. Confirm `coohh88/comfyui-base:cuda12.8.1-torch2.11.0-comfyui0.36.0-python3.12-r8`
    exists before publishing the Wan image.
 6. Add real workflows, then derive the exact model registry and Wan-specific node packs
    from those workflows before calling the template generation-ready.
