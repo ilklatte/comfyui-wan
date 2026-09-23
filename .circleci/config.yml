@@ -31,14 +31,13 @@ jobs:
     resource_class: medium
     environment:
       DOCKER_BUILDKIT: "1"
-      RELEASE_REF: << pipeline.config.ref >>
+      RELEASE_TAG: << pipeline.git.tag >>
     steps:
       - checkout
       - run:
           name: Validate release configuration
           command: |
-            export RELEASE_TAG="${RELEASE_REF#refs/tags/}"
-            [[ "$RELEASE_REF" == refs/tags/* && "$RELEASE_TAG" =~ ^v[1-9][0-9]*$ ]] || { echo 'Release tag must be vN, for example v1'; exit 2; }
+            [[ "${RELEASE_TAG:-}" =~ ^v[1-9][0-9]*$ ]] || { echo 'Release tag must be vN, for example v1'; exit 2; }
             export DOCKER_IMAGE="${DOCKER_IMAGE:-coohh88/comfyui-wan}"
             export TEMPLATE_REPOSITORY_URL="${TEMPLATE_REPOSITORY_URL:-https://github.com/ilklatte/comfyui-wan.git}"
             for name in DOCKER_IMAGE TEMPLATE_REPOSITORY_URL DOCKERHUB_USERNAME DOCKERHUB_TOKEN; do
@@ -102,8 +101,8 @@ workflows:
   verify-and-publish:
     jobs:
       - verify:
-          filters: pipeline.event.name == "push"
+          filters: pipeline.git.branch == "main" or pipeline.git.tag matches /^v[1-9][0-9]*$/
       - publish:
           requires:
             - verify
-          filters: pipeline.config.ref matches "^refs/tags/v[1-9][0-9]*$"
+          filters: pipeline.git.tag matches /^v[1-9][0-9]*$/
