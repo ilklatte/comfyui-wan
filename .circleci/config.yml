@@ -31,12 +31,14 @@ jobs:
     resource_class: medium
     environment:
       DOCKER_BUILDKIT: "1"
+      RELEASE_REF: << pipeline.config.ref >>
     steps:
       - checkout
       - run:
           name: Validate release configuration
           command: |
-            [[ "${CIRCLE_TAG:-}" =~ ^v[1-9][0-9]*$ ]] || { echo 'Release tag must be vN, for example v1'; exit 2; }
+            export RELEASE_TAG="${RELEASE_REF#refs/tags/}"
+            [[ "$RELEASE_REF" == refs/tags/* && "$RELEASE_TAG" =~ ^v[1-9][0-9]*$ ]] || { echo 'Release tag must be vN, for example v1'; exit 2; }
             export DOCKER_IMAGE="${DOCKER_IMAGE:-coohh88/comfyui-wan}"
             export TEMPLATE_REPOSITORY_URL="${TEMPLATE_REPOSITORY_URL:-https://github.com/ilklatte/comfyui-wan.git}"
             for name in DOCKER_IMAGE TEMPLATE_REPOSITORY_URL DOCKERHUB_USERNAME DOCKERHUB_TOKEN; do
@@ -50,7 +52,7 @@ jobs:
               echo "export DOCKER_IMAGE='$DOCKER_IMAGE'"
               echo "export TEMPLATE_REPOSITORY_URL='$TEMPLATE_REPOSITORY_URL'"
               echo "export BASE_IMAGE='$base_image'"
-              echo "export IMAGE_TAG='$CIRCLE_TAG'"
+              echo "export IMAGE_TAG='$RELEASE_TAG'"
             } >> "$BASH_ENV"
       - run:
           name: Log in to Docker Hub
@@ -104,4 +106,4 @@ workflows:
       - publish:
           requires:
             - verify
-          filters: pipeline.git.tag matches "^v[1-9][0-9]*$"
+          filters: pipeline.config.ref matches "^refs/tags/v[1-9][0-9]*$"
