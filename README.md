@@ -27,16 +27,16 @@ built and the pod can boot, but this version **cannot generate Wan video**.
    exists before publishing the Wan image.
 6. Add real workflows, then derive the exact model registry and Wan-specific node packs
    from those workflows before calling the template generation-ready.
-7. Validate and smoke-test on a fresh network volume before publishing `r1`.
+7. Validate and smoke-test on a fresh network volume before publishing `v1`.
 
 The RunPod image promoter is maintained locally in
-`tools/update_runpod_template.py`. It accepts only this repository's complete,
-immutable `wan2.2-...-rN` tags, verifies every update, and rolls back earlier
+`tools/update_runpod_template.py`. It accepts only this repository's immutable
+`vN` tags, verifies every update, and rolls back earlier
 changes if a later template update fails.
 
-Each release pushes a version-qualified tag such as
-`wan2.2-cuda12.8.1-torch2.11.0-comfyui0.36.0-python3.12-r1` plus the rolling
-`latest` tag. RunPod uses the immutable `rN` tag.
+Each release pushes an immutable tag such as `v1` plus the rolling `latest`
+tag. RunPod uses the immutable `vN` tag. The inherited `comfyui-base` image
+remains pinned by its complete CUDA, PyTorch, ComfyUI, Python, and `rN` tag.
 
 RunPod should expose TCP ports `8188` and `8888` and mount its network volume
 at `/workspace`.

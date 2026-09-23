@@ -22,7 +22,7 @@ from typing import Callable, Iterable
 API_ROOT = "https://api.runpod.io/v2"
 IMAGE_RE = re.compile(
     r"^(?P<repo>[a-z0-9]+(?:[._/-][a-z0-9]+)*)"
-    r":(?P<tag>wan2\.2-cuda[0-9.]+-torch[0-9.]+-comfyui[0-9.]+-python[0-9.]+-r[1-9][0-9]*)$"
+    r":(?P<tag>v[1-9][0-9]*)$"
 )
 TEMPLATE_ID_RE = re.compile(r"^[a-z0-9]{10}$")
 
@@ -132,8 +132,7 @@ def image_repository(image_name: str) -> str:
     match = IMAGE_RE.fullmatch(image_name)
     if not match:
         raise PromotionError(
-            "image must use the immutable "
-            "owner/repository:wan2.2-cudaX-torchX-comfyuiX-pythonX-rN format: "
+            "image must use the immutable owner/repository:vN format: "
             f"{image_name!r}"
         )
     return match.group("repo")
@@ -201,7 +200,7 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument(
         "--image",
         required=True,
-        help="Immutable comfyui-wan image with a complete version-qualified rN tag",
+        help="Immutable comfyui-wan image using a vN tag",
     )
     result.add_argument(
         "--expected-repository",

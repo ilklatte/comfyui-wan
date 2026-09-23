@@ -9,11 +9,10 @@ from update_runpod_template import PromotionError, Template, parse_template_ids,
 
 
 REPOSITORY = "coohh88/comfyui-wan"
-TAG_PREFIX = "wan2.2-cuda12.8.1-torch2.11.0-comfyui0.36.0-python3.12-r"
 
 
 def image(release: int) -> str:
-    return f"{REPOSITORY}:{TAG_PREFIX}{release}"
+    return f"{REPOSITORY}:v{release}"
 
 
 class FakeClient:

@@ -3,7 +3,7 @@ name: Verify and publish Docker image
 on:
   push:
     branches: [main]
-    tags: ['r*']
+    tags: ['v*']
   pull_request:
     branches: [main]
 
@@ -31,7 +31,7 @@ jobs:
           ! grep -q '/ComfyUI/custom_nodes/' Dockerfile
 
   publish:
-    if: startsWith(github.ref, 'refs/tags/r')
+    if: startsWith(github.ref, 'refs/tags/v')
     needs: verify
     runs-on: ubuntu-latest
     env:
@@ -46,7 +46,7 @@ jobs:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
-          [[ "$GITHUB_REF_NAME" =~ ^r[1-9][0-9]*$ ]] || { echo 'Release tag must be rN, for example r1'; exit 2; }
+          [[ "$GITHUB_REF_NAME" =~ ^v[1-9][0-9]*$ ]] || { echo 'Release tag must be vN, for example v1'; exit 2; }
           for name in DOCKER_IMAGE TEMPLATE_REPOSITORY_URL DOCKERHUB_USERNAME DOCKERHUB_TOKEN; do
             test -n "${!name}" || { echo "$name is required"; exit 2; }
           done
@@ -55,9 +55,7 @@ jobs:
           [[ "$base_image" != replace-with-* ]] || { echo 'Replace the Wan base_image with your published, version-qualified comfyui-base image'; exit 2; }
           [[ "$base_image" =~ /comfyui-base:cuda[0-9.]+-torch[0-9.]+-comfyui[0-9.]+-python[0-9.]+-r[1-9][0-9]*$ ]] || { echo 'Wan base_image must use an immutable rN comfyui-base tag'; exit 2; }
           echo "base_image=$base_image" >> "$GITHUB_OUTPUT"
-          base_tag="${base_image##*:}"
-          image_tag="wan2.2-${base_tag%-r*}-$GITHUB_REF_NAME"
-          echo "image_tag=$image_tag" >> "$GITHUB_OUTPUT"
+          echo "image_tag=$GITHUB_REF_NAME" >> "$GITHUB_OUTPUT"
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
       - name: Log in to Docker Hub
