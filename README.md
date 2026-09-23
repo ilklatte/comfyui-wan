@@ -29,6 +29,11 @@ built and the pod can boot, but this version **cannot generate Wan video**.
    from those workflows before calling the template generation-ready.
 7. Validate and smoke-test on a fresh network volume before publishing `r1`.
 
+The RunPod image promoter is maintained locally in
+`tools/update_runpod_template.py`. It accepts only this repository's complete,
+immutable `wan2.2-...-rN` tags, verifies every update, and rolls back earlier
+changes if a later template update fails.
+
 Each release pushes a version-qualified tag such as
 `wan2.2-cuda12.8.1-torch2.11.0-comfyui0.36.0-python3.12-r1` plus the rolling
 `latest` tag. RunPod uses the immutable `rN` tag.

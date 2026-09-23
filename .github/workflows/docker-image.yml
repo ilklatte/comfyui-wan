@@ -22,6 +22,7 @@ jobs:
           python3 -m py_compile tools/*.py
           find . -path ./.git -prune -o -name '*.json' -print0 | xargs -0 -r -n1 python3 -m json.tool >/dev/null
           python3 tools/validate_models.py --offline
+          PYTHONPATH=tools python3 -m unittest tools/test_update_runpod_template.py
       - name: Validate inherited base-image contract
         run: |
           grep -Eq '^ARG BASE_IMAGE=.*comfyui-base:cuda[0-9.]+-torch[0-9.]+-comfyui[0-9.]+-python[0-9.]+-r[1-9][0-9]*$' Dockerfile
