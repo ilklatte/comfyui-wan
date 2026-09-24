@@ -42,7 +42,6 @@ jobs:
     resource_class: medium
     environment:
       DOCKER_BUILDKIT: "1"
-      GIT_RELEASE_TAG: << pipeline.git.tag >>
       MANUAL_RELEASE_TAG: << pipeline.parameters.release_tag >>
       BASE_IMAGE_OVERRIDE: << pipeline.parameters.base_image >>
     steps:
@@ -50,7 +49,14 @@ jobs:
       - run:
           name: Validate release configuration
           command: |
-            export IMAGE_TAG="${GIT_RELEASE_TAG:-$MANUAL_RELEASE_TAG}"
+            if [ -n "${CIRCLE_TAG:-}" ]; then
+              export IMAGE_TAG="$CIRCLE_TAG"
+              release_source='Git tag'
+            else
+              export IMAGE_TAG="$MANUAL_RELEASE_TAG"
+              release_source='manual parameter'
+            fi
+            printf 'Release tag from %s: <%s>\n' "$release_source" "$IMAGE_TAG"
             [[ "$IMAGE_TAG" =~ ^v[1-9][0-9]*$ ]] || { echo 'Release tag must be vN, for example v7'; exit 2; }
             export DOCKER_IMAGE="${DOCKER_IMAGE:-coohh88/comfyui-wan}"
             export TEMPLATE_REPOSITORY_URL="${TEMPLATE_REPOSITORY_URL:-https://github.com/ilklatte/comfyui-wan.git}"
