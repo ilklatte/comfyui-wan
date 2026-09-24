@@ -37,7 +37,7 @@ jobs:
           PYTHONPATH=tools python3 -m unittest tools/test_update_runpod_template.py
       - name: Validate inherited base-image contract
         run: |
-          grep -Eq '^ARG BASE_IMAGE=.*comfyui-base:cuda[0-9.]+-torch[0-9.]+-comfyui[0-9.]+-python[0-9.]+-r[1-9][0-9]*$' Dockerfile
+          grep -Eq '^ARG BASE_IMAGE=coohh88/comfyui-base:(latest|cuda[0-9.]+-torch[0-9.]+-comfyui[0-9.]+-python[0-9.]+-r[1-9][0-9]*)$' Dockerfile
           ! grep -q 'hearmeman/comfyui-base' Dockerfile
           ! grep -q 'apt-get install.*tmux' Dockerfile
           ! grep -q '/ComfyUI/custom_nodes/' Dockerfile
@@ -70,7 +70,7 @@ jobs:
           base_image=$(python3 -c "import json; print(json.load(open('pins.json'))['base_image'])")
           test -n "$base_image" || { echo 'pins.json base_image is required'; exit 2; }
           [[ "$base_image" != replace-with-* ]] || { echo 'Replace the Wan base_image with your published, version-qualified comfyui-base image'; exit 2; }
-          [[ "$base_image" =~ /comfyui-base:cuda[0-9.]+-torch[0-9.]+-comfyui[0-9.]+-python[0-9.]+-r[1-9][0-9]*$ ]] || { echo 'Wan base_image must use an immutable rN comfyui-base tag'; exit 2; }
+          [[ "$base_image" =~ /comfyui-base:(latest|cuda[0-9.]+-torch[0-9.]+-comfyui[0-9.]+-python[0-9.]+-r[1-9][0-9]*)$ ]] || { echo 'Wan base_image must use comfyui-base:latest or an immutable rN tag'; exit 2; }
           echo "base_image=$base_image" >> "$GITHUB_OUTPUT"
           echo "image_tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
       - name: Set up Docker Buildx
@@ -85,6 +85,7 @@ jobs:
         with:
           context: .
           push: true
+          pull: true
           platforms: linux/amd64
           tags: |
             ${{ env.DOCKER_IMAGE }}:${{ steps.release.outputs.image_tag }}

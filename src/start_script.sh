@@ -31,6 +31,22 @@ if [ -z "$ok" ] && [ ! -d "$TEMPLATE_DIR/.git" ]; then
     exit 1
 fi
 
+# The repository value is only the build default; a pipeline may override it.
+# Record the build's actual parent image in the runtime copy so the boot report
+# never claims that a different Base reference was used.
+if [ -n "${COMFYUI_BASE_IMAGE:-}" ] && [ -f "$TEMPLATE_DIR/pins.json" ]; then
+    python3 - "$TEMPLATE_DIR/pins.json" "$COMFYUI_BASE_IMAGE" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+pins = json.loads(path.read_text())
+pins["base_image"] = sys.argv[2]
+path.write_text(json.dumps(pins, indent=2) + "\n")
+PY
+fi
+
 if [ ! -x "$RUNTIME_DIR/src/start.sh" ]; then
     echo "FATAL: Base-owned runtime is missing at $RUNTIME_DIR/src/start.sh." >&2
     exit 1

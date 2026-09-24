@@ -48,7 +48,7 @@ does not use Docker Build Cloud.
 5. Keep the same Docker Hub and RunPod credentials in GitHub Actions secrets,
    plus `DOCKER_IMAGE`, `TEMPLATE_REPOSITORY_URL`, and `RUNPOD_TEMPLATE_IDS` in
    GitHub repository variables, for the manual fallback workflow.
-6. Confirm `coohh88/comfyui-base:cuda12.8.1-torch2.11.0-comfyui0.36.0-python3.12-r8`
+6. Confirm `coohh88/comfyui-base:latest`
    exists before publishing the Wan image.
 7. Add real workflows, then derive the exact model registry and Wan-specific node packs
    from those workflows before calling the template generation-ready.

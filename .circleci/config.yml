@@ -29,7 +29,7 @@ jobs:
       - run:
           name: Validate inherited base-image contract
           command: |
-            grep -Eq '^ARG BASE_IMAGE=.*comfyui-base:cuda[0-9.]+-torch[0-9.]+-comfyui[0-9.]+-python[0-9.]+-r[1-9][0-9]*$' Dockerfile
+            grep -Eq '^ARG BASE_IMAGE=coohh88/comfyui-base:(latest|cuda[0-9.]+-torch[0-9.]+-comfyui[0-9.]+-python[0-9.]+-r[1-9][0-9]*)$' Dockerfile
             ! grep -q 'hearmeman/comfyui-base' Dockerfile
             ! grep -q 'apt-get install.*tmux' Dockerfile
             ! grep -q '/ComfyUI/custom_nodes/' Dockerfile
@@ -66,7 +66,8 @@ jobs:
             base_image="${BASE_IMAGE_OVERRIDE:-$(python3 -c "import json; print(json.load(open('pins.json'))['base_image'])")}"
             test -n "$base_image" || { echo 'pins.json base_image is required'; exit 2; }
             [[ "$base_image" != replace-with-* ]] || { echo 'Replace the Wan base_image with your published, version-qualified comfyui-base image'; exit 2; }
-            [[ "$base_image" =~ /comfyui-base:cuda[0-9.]+-torch[0-9.]+-comfyui[0-9.]+-python[0-9.]+-r[1-9][0-9]*$ ]] || { echo 'Wan base_image must use an immutable rN comfyui-base tag'; exit 2; }
+            [[ "$base_image" =~ /comfyui-base:(latest|cuda[0-9.]+-torch[0-9.]+-comfyui[0-9.]+-python[0-9.]+-r[1-9][0-9]*)$ ]] || { echo 'Wan base_image must use comfyui-base:latest or an immutable rN tag'; exit 2; }
+            printf 'Base image: <%s>\n' "$base_image"
             {
               echo "export DOCKER_IMAGE='$DOCKER_IMAGE'"
               echo "export TEMPLATE_REPOSITORY_URL='$TEMPLATE_REPOSITORY_URL'"
@@ -87,6 +88,7 @@ jobs:
           command: |
             docker build \
               --progress=plain \
+              --pull \
               --build-arg "BASE_IMAGE=$BASE_IMAGE" \
               --build-arg "TEMPLATE_REPOSITORY_URL=$TEMPLATE_REPOSITORY_URL" \
               --tag "$DOCKER_IMAGE:$IMAGE_TAG" \
