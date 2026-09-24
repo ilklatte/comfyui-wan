@@ -13,7 +13,7 @@
     }
   },
   "auto_download": [],
-  "models_symlink": false,
+  "models_symlink": true,
   "custom_nodes": {
     "target": "image",
     "repos": []
